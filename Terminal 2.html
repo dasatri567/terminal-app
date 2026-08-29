@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="theme-color" content="#0B0F16">
+<title>Confluence Terminal — Delta Exchange</title>
+
+<!-- Inline Web App Manifest for Mobile PWA Installation -->
+<link rel="manifest" href='data:application/manifest+json,{"name":"Confluence Terminal","short_name":"Terminal","start_url":"./","display":"standalone","background_color":"#0B0F16","theme_color":"#0B0F16","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/6124/6124991.png","sizes":"512x512","type":"image/png"}]}'>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root{
+    --bg:#0B0F16;
+    --bg-grad: radial-gradient(1200px 500px at 50% -10%, rgba(91,140,255,0.08), transparent 60%);
+    --surface:#121821;
+    --surface-2:#161E29;
+    --surface-3:#1B2430;
+    --border:#232D3A;
+    --border-soft:#1B2430;
+    --text:#EDF1F6;
+    --muted:#6E7889;
+    --muted-2:#98A2B3;
+    --long:#3DDC97;
+    --long-dim:#12261E;
+    --short:#FF6B6B;
+    --short-dim:#2A1517;
+    --signal:#F5B942;
+    --signal-dim:#2E230E;
+    --focus:#5B8CFF;
+    --focus-dim:#141C2E;
+    --radius-lg:16px;
+    --radius-md:11px;
+    --radius-sm:8px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  body{background-image:var(--bg-grad);}
+  ::selection{background:var(--focus);color:#fff;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;}
+  button:focus-visible, [tabindex]:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}
+
+  .app{max-width:600px;margin:0 auto;padding:0 14px 44px;}
+
+  /* ===== topbar ===== */
+  .topbar{position:sticky;top:0;z-index:30;background:linear-gradient(180deg, var(--bg) 78%, transparent);padding:18px 0 8px;}
+  .topbar-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+  .brand-title{font-size:17px;font-weight:800;letter-spacing:-0.01em;}
+  .brand-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+
+  .live-toggle{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:6px 10px 6px 13px;flex-shrink:0;}
+  .live-label{font-size:10.5px;font-weight:700;color:var(--muted-2);text-transform:uppercase;letter-spacing:0.06em;}
+  .switch{position:relative;width:32px;height:19px;border-radius:12px;background:var(--surface-3);border:1px solid var(--border);transition:background .2s;flex-shrink:0;}
+  .switch.on{background:rgba(61,220,151,0.16);border-color:var(--long);}
+  .switch::after{content:'';position:absolute;top:1.5px;left:1.5px;width:14px;height:14px;border-radius:50%;background:var(--muted-2);transition:transform .2s, background .2s;}
+  .switch.on::after{transform:translateX(13px);background:var(--long);}
+  .live-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);}
+  .live-dot.on{background:var(--long);box-shadow:0 0 0 3px rgba(61,220,151,0.16);animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
+
+  .subrow{display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:11px;color:var(--muted);}
+  .refresh-btn{background:var(--surface);border:1px solid var(--border);color:var(--muted-2);border-radius:var(--radius-sm);padding:6px 11px;font-size:11px;display:flex;align-items:center;gap:6px;font-weight:600;}
+  .refresh-btn:hover{border-color:#33404F;color:var(--text);}
+  .refresh-btn svg{width:11px;height:11px;}
+  .spin{animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .signals-today{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;}
+  .signals-today .dot{width:5px;height:5px;border-radius:50%;background:var(--signal);}
+  .signals-today b{color:var(--text);}
+
+  /* ===== agent control bar ===== */
+  .agent-bar{margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;}
+  .agent-bar-title{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+  .agent-bar-title .hint{font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted);font-size:10.5px;display:flex;align-items:center;gap:4px;}
+  .agent-bar-title .chev{width:11px;height:11px;transition:transform .2s;}
+  .agent-bar.collapsed .agent-bar-title .chev{transform:rotate(-90deg);}
+  .agent-bar-body{margin-top:9px;overflow:hidden;max-height:200px;transition:max-height .2s ease, margin-top .2s ease, opacity .2s ease;opacity:1;}
+  .agent-bar.collapsed .agent-bar-body{max-height:0;margin-top:0;opacity:0;}
+  .agent-summary-line{font-size:10.5px;color:var(--muted);display:none;}
+  .agent-bar.collapsed .agent-summary-line{display:block;margin-top:4px;}
+  .agent-pills{display:flex;gap:7px;}
+  .agent-pill{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 4px 8px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-2);transition:all .15s;}
+  .agent-pill.active{border-color:var(--focus);background:var(--focus-dim);}
+  .agent-pill .a-icon{width:16px;height:16px;color:var(--muted-2);}
+  .agent-pill.active .a-icon{color:var(--focus);}
+  .agent-pill .a-name{font-size:10.5px;font-weight:700;color:var(--muted-2);}
+  .agent-pill.active .a-name{color:var(--text);}
+  .agent-pill .a-desc{font-size:8.5px;color:var(--muted);text-align:center;line-height:1.3;}
+
+  .view-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px;margin-top:10px;}
+  .view-toggle button{flex:1;background:none;border:none;color:var(--muted);font-size:12px;font-weight:600;padding:7px 0;border-radius:6px;transition:all .15s;}
+  .view-toggle button.active{background:var(--surface-3);color:var(--text);}
+
+  .quality-note{margin-top:10px;font-size:10.5px;color:var(--muted);text-align:center;line-height:1.5;padding:0 6px;}
+  .quality-note b{color:var(--muted-2);}
+
+  /* ===== coin card ===== */
+  .card{margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 8px 24px -12px rgba(0,0,0,0.4);}
+  .card.is-signal{border-color:rgba(245,185,66,0.4);box-shadow:0 0 0 1px rgba(245,185,66,0.12), 0 8px 24px -10px rgba(245,185,66,0.15);}
+  .card-head{padding:15px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .coin-id{display:flex;align-items:center;gap:11px;}
+  .coin-badge{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;font-family:'IBM Plex Mono',monospace;background:var(--surface-3);border:1px solid var(--border);letter-spacing:-0.02em;}
+  .coin-name{font-size:14.5px;font-weight:700;}
+  .coin-price{font-size:11.5px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:2px;}
+  .chg-up{color:var(--long);}
+  .chg-down{color:var(--short);}
+
+  .score-pill{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+  .score-num{font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:700;line-height:1;}
+  .score-num small{font-size:11px;color:var(--muted);font-weight:500;}
+  .status-chip{font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;padding:3.5px 9px;border-radius:20px;display:flex;align-items:center;gap:4px;}
+  .status-signal{background:var(--signal-dim);color:var(--signal);border:1px solid rgba(245,185,66,0.35);}
+  .status-cooloff{background:var(--surface-3);color:var(--focus);border:1px solid rgba(91,140,255,0.35);}
+  .status-watch{background:var(--surface-3);color:var(--muted-2);border:1px solid var(--border);}
+  .status-conflict{background:var(--short-dim);color:var(--short);border:1px solid rgba(255,107,107,0.3);}
+  .status-long{color:var(--long);}
+  .status-short{color:var(--short);}
+
+  .time-banner{margin:0 16px 12px;padding:8px 12px;background:var(--surface-3);border:1px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:space-between;font-size:11px;}
+  .time-banner.valid{border-color:rgba(245,185,66,0.4);background:var(--signal-dim);}
+  .time-banner.cooloff{border-color:rgba(91,140,255,0.35);background:var(--focus-dim);}
+  .time-banner.expired{border-color:rgba(255,107,107,0.3);background:var(--short-dim);}
+  .time-banner .tb-label{color:var(--muted-2);font-weight:600;}
+  .time-banner .tb-val{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--text);}
+  .time-banner.expired .tb-val{color:var(--short);}
+
+  .tf-strip{margin:0 16px 12px;display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;}
+  .tf-strip svg{width:14px;height:14px;color:var(--focus);flex-shrink:0;}
+  .tf-strip-text{font-size:11.5px;color:var(--muted-2);}
+  .tf-strip-text b{color:var(--text);font-family:'IBM Plex Mono',monospace;}
+
+  .meter{padding:0 16px 13px;}
+  .meter-track{display:flex;height:7px;border-radius:5px;overflow:hidden;background:var(--surface-3);position:relative;border:1px solid var(--border);}
+  .meter-seg{height:100%;transition:width .4s ease;}
+  .meter-seg.off{background:var(--surface-3) !important;}
+  .meter-line{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--signal);left:85%;}
+  .meter-labels{display:flex;justify-content:space-between;margin-top:7px;font-size:9.5px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+  .meter-labels span.dimmed{opacity:0.35;}
+  .meter-labels span b{color:var(--muted-2);}
+
+  .card-body{border-top:1px solid var(--border-soft);padding:14px 16px;}
+  .err-state{color:var(--short);font-size:12px;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .err-state button{background:none;border:1px solid var(--border);color:var(--muted-2);border-radius:6px;padding:4px 9px;font-size:11px;flex-shrink:0;}
+  .loading-state{color:var(--muted);font-size:12px;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:8px;}
+  .skel{height:10px;background:var(--surface-3);border-radius:4px;overflow:hidden;position:relative;flex:1;}
+  .skel::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.05),transparent);animation:shimmer 1.3s infinite;}
+  @keyframes shimmer{from{transform:translateX(-100%);}to{transform:translateX(100%);}}
+
+  .levels-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+  .lvl{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 8px;text-align:center;}
+  .lvl-label{font-size:9px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);font-weight:700;}
+  .lvl-val{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:700;margin-top:4px;letter-spacing:-0.01em;}
+  .lvl.entry{border-color:rgba(91,140,255,0.35);}
+  .lvl.entry .lvl-val{color:var(--focus);}
+  .lvl.sl{border-color:rgba(255,107,107,0.3);}
+  .lvl.sl .lvl-val{color:var(--short);}
+  .lvl.tp{border-color:rgba(61,220,151,0.3);}
+  .lvl.tp .lvl-val{color:var(--long);}
+  .tp2-line{margin-top:7px;font-size:10.5px;color:var(--muted);text-align:center;font-family:'IBM Plex Mono',monospace;}
+  .tp2-line b{color:var(--muted-2);}
+  .rrr-row{display:flex;align-items:center;justify-content:space-between;margin-top:11px;font-size:11.5px;font-family:'IBM Plex Mono',monospace;color:var(--muted-2);}
+  .rrr-row b{color:var(--text);}
+  .rrr-fail{color:var(--short);font-weight:600;}
+  .rrr-pass{color:var(--long);font-weight:600;}
+  .no-setup{font-size:12px;color:var(--muted);line-height:1.55;padding:2px 0;}
+
+  .tf-row{display:flex;gap:5px;margin-bottom:13px;flex-wrap:wrap;}
+  .tf-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:4px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);}
+  .tf-chip .tf-l{color:var(--muted);margin-right:4px;}
+  .tf-bull{color:var(--long);}
+  .tf-bear{color:var(--short);}
+  .tf-flat{color:var(--muted-2);}
+
+  .agent{padding:11px 0;border-top:1px solid var(--border-soft);}
+  .agent:first-child{border-top:none;padding-top:0;}
+  .agent.disabled{opacity:0.4;}
+  .agent-head{display:flex;align-items:center;justify-content:space-between;}
+  .agent-name{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px;}
+  .agent-off-tag{font-size:9px;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-weight:600;text-transform:uppercase;}
+  .agent-score{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted-2);}
+  .agent-desc{font-size:11.5px;color:var(--muted);line-height:1.55;margin-top:4px;}
+
+  .footnote{margin-top:20px;font-size:10.5px;color:var(--muted);line-height:1.65;text-align:center;padding:0 8px;}
+
+  @media (prefers-reduced-motion: reduce){
+    .live-dot.on{animation:none;} .spin{animation:none;} .meter-seg{transition:none;} .skel::after{animation:none;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="topbar-row">
+      <div>
+        <div class="brand-title">Confluence Terminal</div>
+        <div class="brand-sub">Delta Exchange · multi-agent SMC scanner</div>
+      </div>
+      <div class="live-toggle" id="liveToggleWrap" role="button" tabindex="0" aria-label="Toggle live mode">
+        <span class="live-label">Live</span>
+        <div class="switch" id="liveSwitch"></div>
+        <div class="live-dot" id="liveDot"></div>
+      </div>
+    </div>
+    <div class="subrow">
+      <span id="lastUpdated">not loaded yet</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="signals-today mono" id="signalsToday"><span class="dot"></span>0 today</span>
+        <button class="refresh-btn" id="refreshBtn">
+          <svg id="refreshIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <div class="agent-bar collapsed" id="agentBar">
+      <div class="agent-bar-title" id="agentBarToggle">
+        <span>Active Agents</span>
+        <span class="hint">
+          <span id="agentSummary">3/3 on</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </span>
+      </div>
+      <div class="agent-bar-body">
+        <div class="agent-pills" id="agentPills">
+          <div class="agent-pill active" data-agent="structure" tabindex="0" role="button">
+            <svg class="a-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v6h-6"/></svg>
+            <span class="a-name">Structure</span>
+            <span class="a-desc">BOS / CHoCH</span>
+          </div>
+          <div class="agent-pill active" data-agent="poi" tabindex="0" role="button">
+            <svg class="a-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="8" width="18" height="8" rx="1"/><path d="M3 12h18"/></svg>
+            <span class="a-name">OB / FVG</span>
+            <span class="a-desc">POI zones</span>
+          </div>
+          <div class="agent-pill active" data-agent="liquidity" tabindex="0" role="button">
+            <svg class="a-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8 8 4 11.5 4 15.5a8 8 0 0016 0C20 11.5 16 8 12 2z"/></svg>
+            <span class="a-name">Liquidity</span>
+            <span class="a-desc">Sweeps</span>
+          </div>
+        </div>
+        <div class="quality-note">8.5/10 + 1:3 RRR stays fixed regardless of how many agents are on.</div>
+      </div>
+    </div>
+
+    <div class="view-toggle">
+      <button id="btnSimple" class="active">Simple</button>
+      <button id="btnDetailed">Detailed</button>
+    </div>
+  </div>
+
+  <div id="cards"></div>
+
+  <div class="footnote">
+    Scores reflect setup quality (BOS/CHoCH, OB/FVG, liquidity sweeps), not a guaranteed win rate. Duplicate signals on same coin within 30 mins are blocked. Confirm every level on your own chart before entering. Data: Delta Exchange India public API.
+  </div>
+</div>
+
+<script>
+/* ================= REGISTER SERVICE WORKER ================= */
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE_NAME = 'terminal-app-v1';
+    self.addEventListener('install', (e) => {
+      e.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(['./'])));
+    });
+    self.addEventListener('fetch', (e) => {
+      e.respondWith(caches.match(e.request).then((res) => res || fetch(e.request)));
+    });
+  `;
+  const blob = new Blob([swCode], { type: 'text/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(err => console.log('SW registration skipped:', err));
+}
+
+/* ================= CONFIG & UTILS ================= */
+const SYMBOLS = [
+  {id:'BTCUSD', name:'BTC / USD', tag:'BTC'},
+  {id:'PAXGUSD', name:'PAXG / USD', tag:'PAXG'},
+  {id:'SOLUSD', name:'SOL / USD', tag:'SOL'}
+];
+const CONTEXT_TFS = [{res:'4h', label:'4H', seconds:14400}, {res:'1d', label:'1D', seconds:86400}];
+const EXEC_TFS = [{res:'5m', label:'5m', seconds:300}, {res:'15m', label:'15m', seconds:900}, {res:'30m', label:'30m', seconds:1800}, {res:'1h', label:'1H', seconds:3600}];
+const ALL_TFS = [...EXEC_TFS, ...CONTEXT_TFS];
+const CANDLE_COUNT = 150;
+const LIVE_INTERVAL_MS = 15000;
+const BASE_URL = 'https://api.india.delta.exchange/v2/history/candles';
+const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+const SCORE_THRESHOLD = 8.5;
+const MIN_RRR = 3;
+const SIGNAL_EXPIRY_MINS = 45;
+const COOL_OFF_MINS = 30;
+
+let liveMode = false;
+let liveTimer = null;
+let detailedView = false;
+let isFetching = false;
+let activeAgents = {structure:true, poi:true, liquidity:true};
+let signalsTodayCount = 0;
+const signalTimestamps = {};
+
+const coinState = {};
+SYMBOLS.forEach(s => coinState[s.id] = {loading:true, error:null, data:null, _candlesByTf:null});
+
+function computeATR(candles, period = 14) {
+  if (candles.length < period + 1) return 0;
+  let trSum = 0;
+  for (let i = 1; i <= period; i++) {
+    const idx = candles.length - i;
+    const c = candles[idx], p = candles[idx - 1];
+    const tr = Math.max(c.high - c.low, Math.abs(c.high - p.close), Math.abs(c.low - p.close));
+    trSum += tr;
+  }
+  return trSum / period;
+}
+
+function computeMAVolume(candles, period = 20) {
+  if (candles.length < period) return 0;
+  const slice = candles.slice(-period);
+  return slice.reduce((acc, c) => acc + c.volume, 0) / period;
+}
+
+/* ================= FETCH WITH PROXY FAILOVER ================= */
+async function fetchCandlesSingle(symbol, tf, useProxy = false) {
+  const end = Math.floor(Date.now() / 1000);
+  const start = end - tf.seconds * CANDLE_COUNT;
+  const targetUrl = `${BASE_URL}?symbol=${encodeURIComponent(symbol)}&resolution=${tf.res}&start=${start}&end=${end}`;
+  const finalUrl = useProxy ? `${PROXY_URL}${encodeURIComponent(targetUrl)}` : targetUrl;
+
+  const res = await fetch(finalUrl, { headers: { 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  if (!json.success || !Array.isArray(json.result)) throw new Error('Bad Payload');
+  return json.result.map(c => ({
+    time: c.time, open: +c.open, high: +c.high, low: +c.low, close: +c.close, volume: +c.volume
+  })).sort((a, b) => a.time - b.time);
+}
+
+async function fetchCandles(symbol, tf) {
+  try {
+    return await fetchCandlesSingle(symbol, tf, false);
+  } catch (err) {
+    return await fetchCandlesSingle(symbol, tf, true);
+  }
+}
+
+/* ================ AGENTS ================ */
+function findSwingsATR(candles, look = 3) {
+  const highs = [], lows = [];
+  const atr = computeATR(candles, 14);
+  for (let i = look; i < candles.length - look; i++) {
+    let isHigh = true, isLow = true;
+    for (let j = i - look; j <= i + look; j++) {
+      if (j === i) continue;
+      if (candles[j].high >= candles[i].high) isHigh = false;
+      if (candles[j].low <= candles[i].low) isLow = false;
+    }
+    if (isHigh && (candles[i].high - candles[i].low) >= (atr * 0.25)) highs.push({ i, price: candles[i].high });
+    if (isLow && (candles[i].high - candles[i].low) >= (atr * 0.25)) lows.push({ i, price: candles[i].low });
+  }
+  return { highs, lows, atr };
+}
+
+function structureState(candles) {
+  if (candles.length < 20) return { bias: 'neutral', bos: false, choch: false };
+  const { highs, lows } = findSwingsATR(candles, 3);
+  if (highs.length < 2 || lows.length < 2) return { bias: 'neutral', bos: false, choch: false };
+
+  const h2 = highs.slice(-2), l2 = lows.slice(-2);
+  const higherHigh = h2[1].price > h2[0].price, higherLow = l2[1].price > l2[0].price;
+  const lowerHigh = h2[1].price < h2[0].price, lowerLow = l2[1].price < l2[0].price;
+
+  let bias = 'neutral';
+  if (higherHigh && higherLow) bias = 'bullish';
+  else if (lowerHigh && lowerLow) bias = 'bearish';
+
+  const last = candles[candles.length - 1];
+  const avgVol = computeMAVolume(candles, 20);
+  const volConfirmed = last.volume >= avgVol * 0.9;
+
+  let bos = false, choch = false;
+  if (bias === 'bullish' && last.close > h2[1].price && volConfirmed) bos = true;
+  if (bias === 'bearish' && last.close < l2[1].price && volConfirmed) bos = true;
+  if (bias === 'bullish' && last.close < l2[1].price) choch = true;
+  if (bias === 'bearish' && last.close > h2[1].price) choch = true;
+
+  return { bias, bos, choch, lastHigh: h2[1].price, lastLow: l2[1].price };
+}
+
+function structureAgent(candlesByTf) {
+  const ctxStates = {}; CONTEXT_TFS.forEach(tf => ctxStates[tf.res] = structureState(candlesByTf[tf.res]));
+  const execStates = {}; EXEC_TFS.forEach(tf => execStates[tf.res] = structureState(candlesByTf[tf.res]));
+  const allStates = { ...ctxStates, ...execStates };
+
+  let htfVote = { bullish: 0, bearish: 0 };
+  CONTEXT_TFS.forEach(tf => {
+    const b = ctxStates[tf.res].bias;
+    if (b === 'bullish') htfVote.bullish++;
+    if (b === 'bearish') htfVote.bearish++;
+  });
+  let htfBias = htfVote.bullish > htfVote.bearish ? 'bullish' : htfVote.bearish > htfVote.bullish ? 'bearish' : 'neutral';
+
+  let alignedW = 0, totalW = 0;
+  const tfWeight = { '5m': 0.5, '15m': 1.5, '30m': 1, '1h': 1.5, '4h': 2, '1d': 2 };
+  ALL_TFS.forEach(tf => {
+    totalW += tfWeight[tf.res];
+    if (htfBias !== 'neutral' && allStates[tf.res].bias === htfBias) alignedW += tfWeight[tf.res];
+  });
+
+  let confirmTF = null;
+  for (const tf of EXEC_TFS) {
+    if (htfBias !== 'neutral' && execStates[tf.res].bos && execStates[tf.res].bias === htfBias) {
+      confirmTF = tf.res; break;
+    }
+  }
+
+  let conflict = EXEC_TFS.some(tf => execStates[tf.res].choch && htfBias !== 'neutral' && execStates[tf.res].bias !== htfBias);
+  let score = htfBias === 'neutral' ? 2 : (alignedW / totalW) * 10;
+  if (confirmTF) score = Math.min(10, score + 1);
+  if (conflict) score = Math.max(0, score - 2.5);
+
+  return { score: Math.round(score * 10) / 10, htfBias, confirmTF, conflict, allStates, direction: htfBias !== 'neutral' ? htfBias : null };
+}
+
+function detectFVGs(candles, lookback = 40) {
+  const fvgs = [];
+  const start = Math.max(2, candles.length - lookback);
+  for (let i = start; i < candles.length; i++) {
+    const c1 = candles[i - 2], c3 = candles[i];
+    if (c1.high < c3.low) fvgs.push({ type: 'bullish', top: c3.low, bottom: c1.high, ce: (c3.low + c1.high) / 2, idx: i });
+    if (c1.low > c3.high) fvgs.push({ type: 'bearish', top: c1.low, bottom: c3.high, ce: (c1.low + c3.high) / 2, idx: i });
+  }
+  return fvgs;
+}
+
+function findOrderBlock(candles, fvg) {
+  if (!fvg) return null;
+  for (let k = fvg.idx - 2; k >= Math.max(0, fvg.idx - 6); k--) {
+    const c = candles[k];
+    if (fvg.type === 'bullish' && c.close < c.open) return { type: 'bullish', high: c.high, low: c.low };
+    if (fvg.type === 'bearish' && c.close > c.open) return { type: 'bearish', high: c.high, low: c.low };
+  }
+  const c = candles[Math.max(0, fvg.idx - 2)];
+  return { type: fvg.type, high: c.high, low: c.low };
+}
+
+function poiAgent(candlesByTf, htfBias) {
+  if (htfBias === 'neutral') return { found: false, score: 0 };
+  let best = null;
+  for (const tf of EXEC_TFS) {
+    const candles = candlesByTf[tf.res];
+    const fvgs = detectFVGs(candles).filter(f => f.type === htfBias);
+    if (fvgs.length === 0) continue;
+    const fvg = fvgs[fvgs.length - 1];
+    const ob = findOrderBlock(candles, fvg);
+    const lastClose = candles[candles.length - 1].close;
+    const distPct = Math.abs(lastClose - fvg.ce) / lastClose * 100;
+    const fresh = (candles.length - 1 - fvg.idx) < 25;
+    const candidate = { tf: tf.res, fvg, ob, distPct, fresh, lastClose };
+    if (!best || (fresh && !best.fresh) || (fresh === best.fresh && distPct < best.distPct)) best = candidate;
+  }
+  if (!best) return { found: false, score: 0 };
+  let score = best.fresh ? 8.5 : 6;
+  if (best.distPct < 0.6) score = Math.min(10, score + 1.5);
+  else if (best.distPct > 3) score = Math.max(0, score - 3);
+  return { found: true, score: Math.round(score * 10) / 10, ...best, direction: htfBias };
+}
+
+function liquiditySweep(candles, htfBias, lookback = 50) {
+  const slice = candles.slice(-lookback);
+  const tol = 0.0015;
+  let eqHigh = null, eqLow = null;
+  for (let i = 0; i < slice.length - 3; i++) {
+    for (let j = i + 3; j < slice.length; j++) {
+      if (Math.abs(slice[i].high - slice[j].high) / slice[i].high < tol) eqHigh = Math.max(slice[i].high, slice[j].high);
+      if (Math.abs(slice[i].low - slice[j].low) / slice[i].low < tol) eqLow = Math.min(slice[i].low, slice[j].low);
+    }
+  }
+  const recent = candles.slice(-4);
+  let sweptHigh = false, sweptLow = false, extremeHigh = null, extremeLow = null;
+  recent.forEach(c => {
+    if (eqHigh && c.high > eqHigh && c.close < eqHigh) { sweptHigh = true; extremeHigh = extremeHigh ? Math.max(extremeHigh, c.high) : c.high; }
+    if (eqLow && c.low < eqLow && c.close > eqLow) { sweptLow = true; extremeLow = extremeLow ? Math.min(extremeLow, c.low) : c.low; }
+  });
+  if (htfBias === 'bullish' && sweptLow) return { found: true, confirmed: true, level: eqLow, extreme: extremeLow, dir: 'bullish', oppositePool: eqHigh };
+  if (htfBias === 'bearish' && sweptHigh) return { found: true, confirmed: true, level: eqHigh, extreme: extremeHigh, dir: 'bearish', oppositePool: eqLow };
+  if (sweptLow || sweptHigh) return { found: true, confirmed: false };
+  if (eqHigh || eqLow) return { found: false, mapped: true };
+  return { found: false, mapped: false };
+}
+
+function liquidityAgent(candlesByTf, htfBias) {
+  if (htfBias === 'neutral') return { found: false, score: 0 };
+  for (const res of ['5m', '15m', '30m']) {
+    const candles = candlesByTf[res];
+    const sweep = liquiditySweep(candles, htfBias);
+    if (sweep.found && sweep.confirmed) {
+      return { found: true, confirmed: true, score: 9, tf: res, direction: htfBias, ...sweep, lastClose: candles[candles.length - 1].close };
+    }
+  }
+  return { found: false, score: 0 };
+}
+
+/* ================= CONFLUENCE ENGINE ================= */
+function runConfluence(symbolId, candlesByTf) {
+  const structure = structureAgent(candlesByTf);
+  const poi = poiAgent(candlesByTf, structure.htfBias);
+  const liquidity = liquidityAgent(candlesByTf, structure.htfBias);
+
+  const agentResults = { structure, poi, liquidity };
+  const active = Object.keys(activeAgents).filter(k => activeAgents[k]);
+  const AGENT_WEIGHTS = {structure:0.4, poi:0.3, liquidity:0.3};
+  const weightSum = active.reduce((a, k) => a + AGENT_WEIGHTS[k], 0) || 1;
+
+  let composite = 0;
+  active.forEach(k => { composite += (agentResults[k].score || 0) * (AGENT_WEIGHTS[k] / weightSum); });
+
+  const directions = active.map(k => agentResults[k].direction).filter(Boolean);
+  const conflict = [...new Set(directions)].length > 1;
+  if (conflict) composite *= 0.45;
+  const htfBias = structure.htfBias;
+  const score = Math.round(composite * 10) / 10;
+
+  let entry = null, sl = null, tp1 = null, tp2 = null, rrr = null, rrrOk = false, entrySourceAgent = null, recommendedTF = null;
+  const poiUsable = activeAgents.poi && poi.found;
+  const liqUsable = activeAgents.liquidity && liquidity.found && liquidity.confirmed;
+
+  const atr15 = computeATR(candlesByTf['15m'], 14);
+  const dynamicBuffer = atr15 * 0.5;
+
+  if (!conflict && htfBias !== 'neutral' && poiUsable) {
+    entry = poi.fvg.ce;
+    recommendedTF = poi.tf; entrySourceAgent = 'poi';
+    sl = htfBias === 'bullish' ? poi.ob.low - dynamicBuffer : poi.ob.high + dynamicBuffer;
+  } else if (!conflict && htfBias !== 'neutral' && liqUsable) {
+    entry = liquidity.level;
+    recommendedTF = liquidity.tf; entrySourceAgent = 'liquidity';
+    sl = htfBias === 'bullish' ? (liquidity.extreme || entry) - dynamicBuffer : (liquidity.extreme || entry) + dynamicBuffer;
+  }
+
+  if (entry !== null && sl !== null) {
+    const risk = Math.abs(entry - sl);
+    if (htfBias === 'bullish') {
+      tp1 = entry + risk * MIN_RRR;
+      tp2 = (liqUsable && liquidity.oppositePool && liquidity.oppositePool > tp1) ? liquidity.oppositePool : entry + risk * 5;
+    } else {
+      tp1 = entry - risk * MIN_RRR;
+      tp2 = (liqUsable && liquidity.oppositePool && liquidity.oppositePool < tp1) ? liquidity.oppositePool : entry - risk * 5;
+    }
+    rrr = Math.abs(tp1 - entry) / risk;
+    rrrOk = rrr >= MIN_RRR - 0.05;
+  }
+
+  const rawSignalEligible = (!conflict && score >= SCORE_THRESHOLD && htfBias !== 'neutral' && entry && rrrOk);
+  const now = Date.now();
+  const prevSignalTime = signalTimestamps[symbolId] || null;
+  let isCoolOff = false;
+
+  if (rawSignalEligible) {
+    if (prevSignalTime) {
+      const minsSinceLast = (now - prevSignalTime) / 60000;
+      if (minsSinceLast < COOL_OFF_MINS) {
+        isCoolOff = true;
+      } else {
+        signalTimestamps[symbolId] = now;
+      }
+    } else {
+      signalTimestamps[symbolId] = now;
+    }
+  }
+
+  let status = 'watchlist';
+  if (conflict) status = 'conflict';
+  else if (isCoolOff) status = 'cooloff';
+  else if (rawSignalEligible) status = 'signal';
+
+  const last15 = candlesByTf['15m'];
+  return {
+    score, htfBias, status, conflict, isCoolOff, active, structure, poi, liquidity,
+    entry, sl, tp1, tp2, rrr, rrrOk, entrySourceAgent, recommendedTF,
+    signalTime: signalTimestamps[symbolId] || null,
+    lastPrice: last15[last15.length - 1].close,
+    prevPrice: last15.length > 1 ? last15[last15.length - 2].close : null
+  };
+}
+
+/* ================= STORAGE & FETCH ENGINE ================= */
+function todayKey(){ const d=new Date(); return `signals:${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function loadSignalsToday(){
+  try{
+    const r = localStorage.getItem(todayKey());
+    const arr = r ? JSON.parse(r) : [];
+    signalsTodayCount = arr.length;
+  }catch(e){ signalsTodayCount = 0; }
+  renderSignalsToday();
+}
+function logSignalIfNew(symbolId, data){
+  if(data.status!=='signal') return;
+  try{
+    const key = todayKey();
+    let arr = [];
+    try{ const r = localStorage.getItem(key); arr = r ? JSON.parse(r) : []; }catch(e){ arr = []; }
+    const already = arr.find(s => s.symbol===symbolId && s.direction===data.htfBias && Math.abs(s.entry-data.entry)/data.entry < 0.004);
+    if(!already){
+      arr.push({symbol:symbolId, direction:data.htfBias, entry:data.entry, score:data.score, time:Date.now()});
+      localStorage.setItem(key, JSON.stringify(arr));
+      signalsTodayCount = arr.length;
+      renderSignalsToday();
+    }
+  }catch(e){}
+}
+function renderSignalsToday(){
+  const el = document.getElementById('signalsToday');
+  if(el) el.innerHTML = `<span class="dot"></span><b>${signalsTodayCount}</b>&nbsp;today`;
+}
+
+async function loadSymbol(sym){
+  coinState[sym.id].loading = true;
+  coinState[sym.id].error = null;
+  renderAll();
+  try{
+    const entries = await Promise.all(ALL_TFS.map(tf => fetchCandles(sym.id, tf).then(c=>[tf.res,c])));
+    const candlesByTf = Object.fromEntries(entries);
+    const result = runConfluence(sym.id, candlesByTf);
+    coinState[sym.id] = {loading:false, error:null, data:result, _candlesByTf:candlesByTf};
+    logSignalIfNew(sym.id, result);
+  }catch(e){
+    coinState[sym.id] = {loading:false, error: e.message || 'fetch failed', data:null};
+  }
+  renderAll();
+}
+
+async function loadAll(){
+  if(isFetching) return;
+  isFetching = true;
+  document.getElementById('refreshIcon').classList.add('spin');
+  await Promise.all(SYMBOLS.map(loadSymbol));
+  document.getElementById('lastUpdated').textContent = 'updated ' + new Date().toLocaleTimeString('en-IN',{hour12:true});
+  document.getElementById('refreshIcon').classList.remove('spin');
+  isFetching = false;
+}
+
+/* ================= RENDER FUNCTIONS ================= */
+function fmt(n){
+  if(n===null || n===undefined || isNaN(n)) return '—';
+  const abs = Math.abs(n);
+  const dp = abs >= 100 ? 2 : abs >= 1 ? 3 : 5;
+  return n.toLocaleString('en-IN', {minimumFractionDigits:dp, maximumFractionDigits:dp});
+}
+const TF_LABELS = {'5m':'5M','15m':'15M','30m':'30M','1h':'1H','4h':'4H','1d':'1D'};
+
+function tfChip(tf, s){
+  const b = s ? s.bias : 'neutral';
+  const cls = b==='bullish' ? 'tf-bull' : b==='bearish' ? 'tf-bear' : 'tf-flat';
+  const arrow = b==='bullish' ? '↑' : b==='bearish' ? '↓' : '·';
+  return `<span class="tf-chip"><span class="tf-l">${TF_LABELS[tf]}</span><span class="${cls}">${arrow}</span></span>`;
+}
+
+function meterHtml(d){
+  const segs = [
+    {key:'structure', val:d.structure.score, color:'#5B8CFF'},
+    {key:'poi', val:d.poi.score||0, color:'#3DDC97'},
+    {key:'liquidity', val:d.liquidity.score||0, color:'#F5B942'}
+  ];
+  const bars = segs.map(s => {
+    const on = activeAgents[s.key];
+    return `<div class="meter-seg ${on?'':'off'}" style="width:${(s.val/30*100).toFixed(1)}%;background:${on?s.color:''}"></div>`;
+  }).join('');
+  const labels = segs.map(s => `<span class="${activeAgents[s.key]?'':'dimmed'}">${s.key==='poi'?'POI':s.key[0].toUpperCase()+s.key.slice(1)} <b>${activeAgents[s.key]?s.val:'off'}</b></span>`).join('');
+  return `<div class="meter"><div class="meter-track">${bars}<div class="meter-line"></div></div><div class="meter-labels">${labels}</div></div>`;
+}
+
+function entryTfStrip(d){
+  if(!d.recommendedTF) return '';
+  const sourceLabel = d.entrySourceAgent==='poi' ? 'OB/FVG agent' : d.entrySourceAgent==='liquidity' ? 'Liquidity agent' : 'Structure agent';
+  return `
+    <div class="tf-strip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      <span class="tf-strip-text">Take entry on <b>${TF_LABELS[d.recommendedTF]}</b> chart — flagged by ${sourceLabel}</span>
+    </div>`;
+}
+
+function timingBannerHtml(d) {
+  if (!d.signalTime) return '';
+  const now = Date.now();
+  const elapsedMins = Math.floor((now - d.signalTime) / 60000);
+  const remMins = SIGNAL_EXPIRY_MINS - elapsedMins;
+  const genTimeStr = new Date(d.signalTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+  if (d.isCoolOff) {
+    const coolOffLeft = COOL_OFF_MINS - elapsedMins;
+    return `
+      <div class="time-banner cooloff">
+        <span class="tb-label">Previous signal: ${genTimeStr}</span>
+        <span class="tb-val">COOL-OFF ACTIVE (${Math.max(1, coolOffLeft)}m left)</span>
+      </div>`;
+  }
+
+  if (remMins <= 0) {
+    return `
+      <div class="time-banner expired">
+        <span class="tb-label">Signal generated: ${genTimeStr}</span>
+        <span class="tb-val">DO NOT ENTER — Signal Expired</span>
+      </div>`;
+  }
+  return `
+    <div class="time-banner valid">
+      <span class="tb-label">Signal generated at ${genTimeStr}</span>
+      <span class="tb-val">Valid for next ${remMins}m</span>
+    </div>`;
+}
+
+function cardHtml(sym){
+  const st = coinState[sym.id];
+  if(st.loading){
+    return cardShell(sym, '', `<div class="card-body"><div class="loading-state"><span class="skel"></span></div></div>`, null, false);
+  }
+  if(st.error){
+    const safeArg = `'${sym.id}'`;
+    return cardShell(sym, '', `<div class="card-body"><div class="err-state"><span>Fetch failed: ${st.error}.</span><button onclick="loadSymbolById(${safeArg})">Retry</button></div></div>`, null, false);
+  }
+
+  const d = st.data;
+  const chg = d.prevPrice ? ((d.lastPrice-d.prevPrice)/d.prevPrice*100) : 0;
+  const chgCls = chg>=0 ? 'chg-up' : 'chg-down';
+  const headExtra = `<span class="${chgCls}">${chg>=0?'+':''}${chg.toFixed(2)}%</span>`;
+  const meter = meterHtml(d);
+  const tfStrip = entryTfStrip(d);
+  const timeBanner = timingBannerHtml(d);
+
+  let bodyHtml = '';
+  if(!detailedView){
+    if(d.status==='conflict'){
+      bodyHtml = `<div class="card-body">${meter}<div class="no-setup">Active agents disagree on direction right now — composite suppressed.</div></div>`;
+    } else if(d.entry && d.sl && d.tp1){
+      bodyHtml = `
+        <div class="card-body">
+          ${timeBanner}
+          ${tfStrip}
+          <div class="levels-grid">
+            <div class="lvl entry"><div class="lvl-label">Entry</div><div class="lvl-val">${fmt(d.entry)}</div></div>
+            <div class="lvl sl"><div class="lvl-label">SL</div><div class="lvl-val">${fmt(d.sl)}</div></div>
+            <div class="lvl tp"><div class="lvl-label">TP1</div><div class="lvl-val">${fmt(d.tp1)}</div></div>
+          </div>
+          <div class="tp2-line">Extension target (TP2): <b>${fmt(d.tp2)}</b></div>
+          <div class="rrr-row">
+            <span>RRR <b>1:${d.rrr ? d.rrr.toFixed(2) : '—'}</b></span>
+            ${d.rrrOk ? '<span class="rrr-pass">Filter passed</span>' : '<span class="rrr-fail">Below 1:3 — watchlist only</span>'}
+          </div>
+          ${meter}
+        </div>`;
+    } else {
+      const missing = [];
+      if(!activeAgents.poi && !activeAgents.liquidity) missing.push('enable OB/FVG or Liquidity agent');
+      bodyHtml = `<div class="card-body">${meter}<div class="no-setup">No aligned POI in range yet (${d.htfBias!=='neutral'?d.htfBias+' HTF bias':'no clear HTF bias'}). ${missing.join('')||'Structure-building.'}</div></div>`;
+    }
+  } else {
+    const tfRow = ALL_TFS.map(tf => tfChip(tf.res, d.structure.allStates[tf.res])).join('');
+    bodyHtml = `
+      <div class="card-body">
+        ${timeBanner}
+        <div class="tf-row">${tfRow}</div>
+        ${meter}
+        ${tfStrip}
+        <div class="agent ${activeAgents.structure?'':'disabled'}">
+          <div class="agent-head"><span class="agent-name">① Market Structure ${!activeAgents.structure?'<span class=\"agent-off-tag\">off</span>':''}</span><span class="agent-score mono">${d.structure.score}/10</span></div>
+          <div class="agent-desc">HTF bias (4H+1D): <b>${d.htfBias}</b>. ${d.structure.confirmTF ? `BOS confirmed on ${TF_LABELS[d.structure.confirmTF]}.` : d.structure.conflict ? 'CHoCH conflicting.' : 'No fresh break.'}</div>
+        </div>
+        <div class="agent ${activeAgents.poi?'':'disabled'}">
+          <div class="agent-head"><span class="agent-name">② Order Block / FVG ${!activeAgents.poi?'<span class=\"agent-off-tag\">off</span>':''}</span><span class="agent-score mono">${d.poi.score||0}/10</span></div>
+          <div class="agent-desc">${d.poi.found ? `${d.poi.fresh?'Fresh':'Older'} ${d.poi.fvg.type} FVG, CE ${fmt(d.poi.fvg.ce)}.` : 'No aligned FVG/OB found.'}</div>
+        </div>
+        <div class="agent ${activeAgents.liquidity?'':'disabled'}">
+          <div class="agent-head"><span class="agent-name">③ Liquidity Sweep ${!activeAgents.liquidity?'<span class=\"agent-off-tag\">off</span>':''}</span><span class="agent-score mono">${d.liquidity.score||0}/10</span></div>
+          <div class="agent-desc">${d.liquidity.found && d.liquidity.confirmed ? `Sweep confirmed at ${fmt(d.liquidity.level)}.` : 'No liquidity pool mapped nearby.'}</div>
+        </div>
+      </div>`;
+  }
+  return cardShell(sym, headExtra, bodyHtml, d, d && d.status==='signal');
+}
+
+function cardShell(sym, headExtra, bodyHtml, d, isSignal){
+  const score = d ? d.score.toFixed(1) : '—';
+  const dirCls = d && d.htfBias==='bullish' ? 'status-long' : d && d.htfBias==='bearish' ? 'status-short' : '';
+  let chip = '';
+  if(d){
+    if(d.status==='signal') chip = `<span class="status-chip status-signal">🔥 Signal · ${d.htfBias==='bullish'?'Long':'Short'}</span>`;
+    else if(d.status==='cooloff') chip = `<span class="status-chip status-cooloff">Cool-off (30m)</span>`;
+    else if(d.status==='conflict') chip = `<span class="status-chip status-conflict">Agents conflict</span>`;
+    else chip = `<span class="status-chip status-watch">Watchlist</span>`;
+  }
+  return `
+    <div class="card ${isSignal?'is-signal':''}">
+      <div class="card-head">
+        <div class="coin-id">
+          <div class="coin-badge">${sym.tag}</div>
+          <div>
+            <div class="coin-name">${sym.name}</div>
+            <div class="coin-price mono">${d ? fmt(d.lastPrice) : '···'} ${headExtra}</div>
+          </div>
+        </div>
+        <div class="score-pill">
+          <div class="score-num ${dirCls}">${score}<small>/10</small></div>
+          ${chip}
+        </div>
+      </div>
+      ${bodyHtml}
+    </div>`;
+}
+
+function renderAll(){
+  document.getElementById('cards').innerHTML = SYMBOLS.map(cardHtml).join('');
+}
+
+/* ================= CONTROLS ================= */
+function setLive(on){
+  liveMode = on;
+  document.getElementById('liveSwitch').classList.toggle('on', on);
+  document.getElementById('liveDot').classList.toggle('on', on);
+  if(liveTimer) clearInterval(liveTimer);
+  if(on) liveTimer = setInterval(loadAll, LIVE_INTERVAL_MS);
+}
+document.getElementById('liveToggleWrap').addEventListener('click', ()=>setLive(!liveMode));
+document.getElementById('refreshBtn').addEventListener('click', loadAll);
+document.getElementById('btnSimple').addEventListener('click', ()=>{detailedView=false; document.getElementById('btnSimple').classList.add('active'); document.getElementById('btnDetailed').classList.remove('active'); renderAll();});
+document.getElementById('btnDetailed').addEventListener('click', ()=>{detailedView=true; document.getElementById('btnDetailed').classList.add('active'); document.getElementById('btnSimple').classList.remove('active'); renderAll();});
+
+document.getElementById('agentBarToggle').addEventListener('click', ()=>{
+  document.getElementById('agentBar').classList.toggle('collapsed');
+});
+
+function toggleAgent(name){
+  const willBeActive = !activeAgents[name];
+  const activeCount = Object.values(activeAgents).filter(Boolean).length;
+  if(!willBeActive && activeCount<=1) return;
+  activeAgents[name] = willBeActive;
+  document.querySelectorAll('.agent-pill').forEach(p=>{
+    if(p.dataset.agent===name) p.classList.toggle('active', willBeActive);
+  });
+  document.getElementById('agentSummary').textContent = `${Object.values(activeAgents).filter(Boolean).length}/3 on`;
+  SYMBOLS.forEach(sym=>{
+    const st = coinState[sym.id];
+    if(st && !st.loading && !st.error && st._candlesByTf){
+      st.data = runConfluence(sym.id, st._candlesByTf);
+    }
+  });
+  renderAll();
+}
+
+document.getElementById('agentPills').addEventListener('click', e=>{
+  const pill = e.target.closest('.agent-pill');
+  if(pill) toggleAgent(pill.dataset.agent);
+});
+
+function loadSymbolById(id){ const sym = SYMBOLS.find(s=>s.id===id); if(sym) loadSymbol(sym); }
+
+setInterval(renderAll, 30000);
+
+renderAll();
+loadSignalsToday();
+loadAll();
+</script>
+</body>
+</html>-
