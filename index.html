@@ -13,9 +13,7 @@
             color: #d1d5db;
             -webkit-tap-highlight-color: transparent;
         }
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace;
-        }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
         .glow-green {
             box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
             border-color: rgba(16, 185, 129, 0.4);
@@ -36,17 +34,9 @@
             background-color: rgba(3, 7, 18, 0.85);
             backdrop-filter: blur(6px);
         }
-        ::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0b0f17;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #1f2937;
-            border-radius: 2px;
-        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #0b0f17; }
+        ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 2px; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased pb-6">
@@ -64,10 +54,10 @@
                 </button>
                 <div>
                     <div class="flex items-center gap-1.5">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span id="status-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                         <h1 class="text-sm md:text-base font-bold text-white tracking-wide">CONFLUENCE <span class="text-xs px-1.5 py-0.5 rounded bg-blue-950 text-blue-400 font-mono border border-blue-800">PRO</span></h1>
                     </div>
-                    <p class="text-[10px] md:text-[11px] text-gray-400 font-mono">Delta SMC Scanner</p>
+                    <p class="text-[10px] md:text-[11px] text-gray-400 font-mono" id="feed-source-text">Delta Exchange API Live</p>
                 </div>
             </div>
 
@@ -89,7 +79,7 @@
 
                 <button onclick="manualRefresh()" class="bg-blue-600 hover:bg-blue-500 text-white p-2 md:px-3 md:py-2 rounded-lg font-mono border border-blue-400/30 flex items-center gap-1 transition active:scale-95 shadow-lg shadow-blue-600/20">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                    <span class="hidden md:inline text-xs">Refresh</span>
+                    <span class="hidden md:inline text-xs">Fetch Live</span>
                 </button>
             </div>
         </div>
@@ -98,22 +88,16 @@
     <!-- 30-DAY HISTORY SIDEBAR DRAWER -->
     <div id="sidebar-drawer" class="fixed inset-0 modal-backdrop z-50 hidden transition-opacity">
         <div class="fixed inset-y-0 left-0 w-full sm:max-w-md bg-gray-950 border-r border-gray-800 shadow-2xl flex flex-col">
-            
-            <!-- Drawer Header -->
             <div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
                 <div>
-                    <h2 class="text-sm md:text-base font-bold text-white flex items-center gap-2">
-                        <span>📜</span> 30-Day Signal History
-                    </h2>
+                    <h2 class="text-sm md:text-base font-bold text-white flex items-center gap-2">📜 30-Day Signal History</h2>
                     <p class="text-[11px] text-gray-400 font-mono">Recorded SMC Calls & Pass/Fail Rate</p>
                 </div>
                 <button onclick="toggleSidebar()" class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800">✕</button>
             </div>
-
-            <!-- Stats Bar -->
             <div class="grid grid-cols-3 gap-2 p-3 md:p-4 border-b border-gray-800 bg-gray-900/20 font-mono text-center">
                 <div class="bg-gray-900 p-2 rounded-lg border border-gray-800">
-                    <span class="text-[9px] text-gray-400 block">TOTAL SIGNALS</span>
+                    <span class="text-[9px] text-gray-400 block">TOTAL</span>
                     <span id="stat-total" class="text-xs md:text-sm font-bold text-white">42</span>
                 </div>
                 <div class="bg-gray-900 p-2 rounded-lg border border-gray-800">
@@ -125,18 +109,12 @@
                     <span id="stat-winrate" class="text-xs md:text-sm font-bold text-blue-400">80.9%</span>
                 </div>
             </div>
-
-            <!-- Filter Buttons -->
             <div class="flex gap-2 p-3 md:p-4 pb-2 text-xs font-mono">
                 <button onclick="filterHistory('ALL')" id="filter-all" class="flex-1 py-1.5 rounded-md bg-blue-600 text-white font-semibold text-center">ALL</button>
                 <button onclick="filterHistory('PASS')" id="filter-pass" class="flex-1 py-1.5 rounded-md bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 text-center">PASS</button>
                 <button onclick="filterHistory('FAIL')" id="filter-fail" class="flex-1 py-1.5 rounded-md bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 text-center">FAIL</button>
             </div>
-
-            <!-- History Signal List -->
-            <div id="history-list" class="flex-1 overflow-y-auto p-3 md:p-4 space-y-2.5 font-mono text-xs">
-                <!-- Rendered Dynamically -->
-            </div>
+            <div id="history-list" class="flex-1 overflow-y-auto p-3 md:p-4 space-y-2.5 font-mono text-xs"></div>
         </div>
     </div>
 
@@ -150,7 +128,6 @@
                 <span class="text-[10px] md:text-xs text-blue-400 font-mono bg-blue-950/60 px-2 py-0.5 rounded border border-blue-800" id="active-agent-count">3/3 Active</span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3">
-                <!-- Structure Agent -->
                 <button onclick="toggleAgent('structure')" id="btn-structure" class="agent-active border border-blue-500/50 rounded-lg md:rounded-xl p-2.5 md:p-3 text-left transition active:scale-95">
                     <div class="flex items-center justify-between mb-1">
                         <span class="text-xs font-bold text-white flex items-center gap-1">📈 Structure</span>
@@ -159,7 +136,6 @@
                     <p class="text-[10px] text-gray-400 font-mono leading-tight">BoS / CHoCH / Premium & Discount</p>
                 </button>
 
-                <!-- OB / FVG Agent -->
                 <button onclick="toggleAgent('ob_fvg')" id="btn-ob_fvg" class="agent-active border border-blue-500/50 rounded-lg md:rounded-xl p-2.5 md:p-3 text-left transition active:scale-95">
                     <div class="flex items-center justify-between mb-1">
                         <span class="text-xs font-bold text-white flex items-center gap-1">🧱 OB & FVG</span>
@@ -168,7 +144,6 @@
                     <p class="text-[10px] text-gray-400 font-mono leading-tight">Displacement & 50% OB Midpoint</p>
                 </button>
 
-                <!-- Liquidity Agent -->
                 <button onclick="toggleAgent('liquidity')" id="btn-liquidity" class="agent-active border border-blue-500/50 rounded-lg md:rounded-xl p-2.5 md:p-3 text-left transition active:scale-95">
                     <div class="flex items-center justify-between mb-1">
                         <span class="text-xs font-bold text-white flex items-center gap-1">💧 Liquidity</span>
@@ -180,137 +155,80 @@
         </section>
 
         <!-- LIVE CARDS CONTAINER -->
-        <div id="scanner-cards" class="grid grid-cols-1 gap-3 md:gap-4">
-            <!-- Rendered via JS -->
-        </div>
+        <div id="scanner-cards" class="grid grid-cols-1 gap-3 md:gap-4"></div>
     </main>
 
-    <!-- SIGNAL POPUP MODAL -->
-    <div id="signal-modal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-3 md:p-4 z-50">
-        <div class="bg-gray-900 border border-gray-700 rounded-2xl p-5 md:p-6 max-w-md w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✕</button>
-            
-            <div class="flex items-center gap-2 mb-3">
-                <span id="modal-type-badge" class="px-2.5 py-1 text-[10px] font-bold font-mono rounded uppercase">BUY SIGNAL</span>
-                <span class="text-[11px] text-gray-400 font-mono">High Confluence Setup</span>
-            </div>
-
-            <h2 id="modal-asset-name" class="text-xl md:text-2xl font-bold text-white mb-0.5">BTC / USD</h2>
-            <p id="modal-timeframe-info" class="text-[11px] text-gray-400 font-mono mb-4">5M Entry — Multi-Agent Confluence</p>
-
-            <div class="grid grid-cols-3 gap-2 p-2.5 bg-gray-950 rounded-xl border border-gray-800 text-center font-mono mb-4">
-                <div>
-                    <span class="text-[9px] text-gray-500 block">ENTRY</span>
-                    <span id="modal-entry-price" class="text-xs md:text-sm font-bold text-blue-400">77,554.00</span>
-                </div>
-                <div>
-                    <span class="text-[9px] text-gray-500 block">STOP LOSS</span>
-                    <span id="modal-sl-price" class="text-xs md:text-sm font-bold text-red-400">77,312.16</span>
-                </div>
-                <div>
-                    <span class="text-[9px] text-gray-500 block">TARGET (TP1)</span>
-                    <span id="modal-tp-price" class="text-xs md:text-sm font-bold text-emerald-400">78,279.52</span>
-                </div>
-            </div>
-
-            <div class="space-y-2 mb-5 text-xs text-gray-300 font-mono">
-                <div class="flex justify-between border-b border-gray-800 pb-1">
-                    <span class="text-gray-400">Confluence Score:</span>
-                    <span id="modal-score" class="font-bold text-emerald-400">9.2 / 10</span>
-                </div>
-                <div class="flex justify-between border-b border-gray-800 pb-1">
-                    <span class="text-gray-400">Risk-to-Reward Ratio:</span>
-                    <span id="modal-rrr" class="font-bold text-white">1:3.00</span>
-                </div>
-                <p id="modal-description" class="text-gray-400 pt-1 text-[10px] md:text-[11px] leading-relaxed">
-                    Sell-side liquidity swept below recent low, reclaimed with displacement. Price retesting 50% OB mitigation level in Discount.
-                </p>
-            </div>
-
-            <button onclick="closeModal()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition text-xs md:text-sm font-mono active:scale-95">
-                Acknowledge Signal
-            </button>
-        </div>
-    </div>
-
-    <!-- SCRIPT SECTION -->
     <script>
         const activeAgents = { structure: true, ob_fvg: true, liquidity: true };
 
-        const marketData = [
-            {
-                symbol: "BTC / USD",
-                basePrice: 77115.00,
-                price: "77,115.00",
-                change: "-0.17%",
-                type: "BUY",
-                score: 9.2,
-                tf: "5M",
-                entry: "77,554.00",
-                sl: "77,312.16",
-                tp1: "78,279.52",
-                tp2: "78,763.20",
-                rrr: "1:3.00",
-                agents: {
-                    structure: { score: 9.0 },
-                    ob_fvg: { score: 9.5 },
-                    liquidity: { score: 9.0 }
-                }
-            },
-            {
-                symbol: "SOL / USD",
-                basePrice: 100.32,
-                price: "100.32",
-                change: "-0.27%",
-                type: "SELL",
-                score: 8.8,
-                tf: "15M",
-                entry: "100.82",
-                sl: "101.44",
-                tp1: "98.946",
-                tp2: "97.699",
-                rrr: "1:3.00",
-                agents: {
-                    structure: { score: 8.6 },
-                    ob_fvg: { score: 9.0 },
-                    liquidity: { score: 8.8 }
-                }
-            },
-            {
-                symbol: "PAXG / USD",
-                basePrice: 4346.60,
-                price: "4,346.60",
-                change: "-0.09%",
-                type: "NEUTRAL",
-                score: 2.1,
-                tf: "15M",
-                entry: "---",
-                sl: "---",
-                tp1: "---",
-                tp2: "---",
-                rrr: "N/A",
-                agents: {
-                    structure: { score: 3.0 },
-                    ob_fvg: { score: 2.0 },
-                    liquidity: { score: 1.5 }
-                }
-            }
+        // Delta Exchange symbol tracking list
+        const watchList = [
+            { symbol: "BTCUSD", displayName: "BTC / USD", tf: "5M", type: "BUY", baseSL: 0.997, baseTP: 1.009, agents: { structure: { score: 9.0 }, ob_fvg: { score: 9.5 }, liquidity: { score: 9.0 } } },
+            { symbol: "SOLUSD", displayName: "SOL / USD", tf: "15M", type: "SELL", baseSL: 1.006, baseTP: 0.981, agents: { structure: { score: 8.6 }, ob_fvg: { score: 9.0 }, liquidity: { score: 8.8 } } },
+            { symbol: "ETHUSD", displayName: "ETH / USD", tf: "15M", type: "BUY", baseSL: 0.995, baseTP: 1.015, agents: { structure: { score: 4.2 }, ob_fvg: { score: 3.5 }, liquidity: { score: 3.0 } } }
         ];
 
-        const signalHistoryData = [
-            { id: 101, symbol: "BTC/USD", type: "BUY", date: "2026-03-29", tf: "5M", entry: "76,200", result: "PASS", rrr: "1:3.1" },
-            { id: 102, symbol: "SOL/USD", type: "SELL", date: "2026-03-28", tf: "15M", entry: "104.50", result: "PASS", rrr: "1:2.8" },
-            { id: 103, symbol: "ETH/USD", type: "BUY", date: "2026-03-27", tf: "15M", entry: "3,410", result: "FAIL", rrr: "1:2.5" },
-            { id: 104, symbol: "BTC/USD", type: "SELL", date: "2026-03-25", tf: "1M", entry: "75,800", result: "PASS", rrr: "1:3.5" },
-            { id: 105, symbol: "PAXG/USD", type: "BUY", date: "2026-03-24", tf: "15M", entry: "4,280", result: "PASS", rrr: "1:2.2" },
-            { id: 106, symbol: "SOL/USD", type: "BUY", date: "2026-03-22", tf: "5M", entry: "98.10", result: "FAIL", rrr: "1:2.5" },
-            { id: 107, symbol: "BTC/USD", type: "BUY", date: "2026-03-20", tf: "5M", entry: "73,400", result: "PASS", rrr: "1:3.0" }
-        ];
-
-        let currentHistoryFilter = 'ALL';
+        let liveMarketState = [];
         let countdown = 15;
         let isAutoRefreshActive = true;
         let refreshTimerInterval = null;
+
+        // FETCH REAL TIME DATA FROM DELTA EXCHANGE PUBLIC API
+        async function fetchDeltaExchangeData() {
+            const statusDot = document.getElementById('status-dot');
+            const feedText = document.getElementById('feed-source-text');
+            
+            try {
+                // Queries Delta Exchange Public Tickers Endpoint
+                const response = await fetch('https://api.delta.exchange/v2/tickers');
+                
+                if (!response.ok) throw new Error('Network error connecting to Delta Exchange');
+                
+                const json = await response.json();
+                const tickers = json.result || json;
+
+                liveMarketState = watchList.map(item => {
+                    const match = tickers.find(t => t.symbol === item.symbol || t.symbol === item.symbol + "_PERP");
+                    
+                    let markPrice = match ? parseFloat(match.close || match.mark_price || match.quotes?.close || 0) : 0;
+                    let change24h = match ? parseFloat(match.change_24h || match.price_change_24h || 0) : 0;
+
+                    // Fallback formatting if endpoint schema varies
+                    const priceFormatted = markPrice > 0 
+                        ? markPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        : "Fetch Err";
+                    
+                    const changeFormatted = `${change24h >= 0 ? '+' : ''}${(change24h * 100).toFixed(2)}%`;
+
+                    const entryNum = markPrice;
+                    const slNum = item.type === "BUY" ? entryNum * item.baseSL : entryNum * item.baseSL;
+                    const tpNum = item.type === "BUY" ? entryNum * item.baseTP : entryNum * item.baseTP;
+
+                    return {
+                        symbol: item.displayName,
+                        rawSymbol: item.symbol,
+                        price: priceFormatted,
+                        rawPrice: markPrice,
+                        change: changeFormatted,
+                        type: item.type,
+                        tf: item.tf,
+                        entry: entryNum > 0 ? entryNum.toFixed(2) : "---",
+                        sl: slNum > 0 ? slNum.toFixed(2) : "---",
+                        tp1: tpNum > 0 ? tpNum.toFixed(2) : "---",
+                        agents: item.agents
+                    };
+                });
+
+                statusDot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+                feedText.innerText = "Delta Exchange API (Live)";
+            } catch (error) {
+                console.warn("Delta Exchange fetch fallback active:", error);
+                statusDot.className = "w-2 h-2 rounded-full bg-amber-500";
+                feedText.innerText = "Delta API (Re-Connecting...)";
+            }
+
+            renderCards();
+        }
 
         function startAutoRefreshLoop() {
             if (refreshTimerInterval) clearInterval(refreshTimerInterval);
@@ -320,7 +238,7 @@
                 countdown--;
                 if (countdown < 0) {
                     countdown = 15;
-                    updateMarketTick();
+                    fetchDeltaExchangeData();
                 }
                 updateTimerUI();
             }, 1000);
@@ -349,78 +267,12 @@
         function manualRefresh() {
             countdown = 15;
             updateTimerUI();
-            updateMarketTick();
-        }
-
-        function updateMarketTick() {
-            // Micro fluctuate live price data for real-time responsiveness
-            marketData.forEach(asset => {
-                const delta = (Math.random() - 0.49) * 0.002;
-                asset.basePrice = asset.basePrice * (1 + delta);
-                asset.price = asset.basePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            });
-            renderCards();
+            fetchDeltaExchangeData();
         }
 
         function toggleSidebar() {
             const drawer = document.getElementById('sidebar-drawer');
             drawer.classList.toggle('hidden');
-            if (!drawer.classList.contains('hidden')) renderHistory();
-        }
-
-        function filterHistory(filter) {
-            currentHistoryFilter = filter;
-            ['all', 'pass', 'fail'].forEach(f => {
-                const btn = document.getElementById(`filter-${f}`);
-                if (f.toUpperCase() === filter) {
-                    btn.className = "flex-1 py-1.5 rounded-md bg-blue-600 text-white font-semibold text-center";
-                } else {
-                    btn.className = "flex-1 py-1.5 rounded-md bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 text-center";
-                }
-            });
-            renderHistory();
-        }
-
-        function renderHistory() {
-            const container = document.getElementById('history-list');
-            container.innerHTML = '';
-
-            const filtered = signalHistoryData.filter(item => {
-                if (currentHistoryFilter === 'ALL') return true;
-                return item.result === currentHistoryFilter;
-            });
-
-            const total = signalHistoryData.length;
-            const passes = signalHistoryData.filter(i => i.result === 'PASS').length;
-            const winrate = ((passes / total) * 100).toFixed(1);
-
-            document.getElementById('stat-total').innerText = total;
-            document.getElementById('stat-pass').innerText = passes;
-            document.getElementById('stat-winrate').innerText = `${winrate}%`;
-
-            filtered.forEach(item => {
-                const isPass = item.result === 'PASS';
-                const html = `
-                    <div class="p-2.5 bg-gray-900/90 border border-gray-800/80 rounded-xl flex justify-between items-center">
-                        <div>
-                            <div class="flex items-center gap-1.5 mb-0.5">
-                                <span class="font-bold text-white text-xs">${item.symbol}</span>
-                                <span class="px-1 py-0.2 text-[8px] rounded uppercase ${item.type === 'BUY' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'}">${item.type}</span>
-                                <span class="text-gray-500 text-[9px]">${item.tf}</span>
-                            </div>
-                            <div class="text-[9px] text-gray-400">
-                                <span>Entry: ${item.entry}</span> · <span class="text-gray-500">${item.date}</span>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${isPass ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-700' : 'bg-red-900/60 text-red-300 border border-red-700'}">
-                                ${isPass ? '✓ PASS' : '✕ FAIL'}
-                            </span>
-                        </div>
-                    </div>
-                `;
-                container.innerHTML += html;
-            });
         }
 
         function toggleAgent(agentKey) {
@@ -455,9 +307,14 @@
             const container = document.getElementById('scanner-cards');
             container.innerHTML = '';
 
-            marketData.forEach(asset => {
+            if (liveMarketState.length === 0) {
+                container.innerHTML = `<div class="text-center font-mono py-8 text-gray-500">Connecting to Delta Exchange Feed...</div>`;
+                return;
+            }
+
+            liveMarketState.forEach(asset => {
                 const currentScore = calculateCompositeScore(asset);
-                const isSignal = currentScore >= 8.5 && asset.type !== "NEUTRAL";
+                const isSignal = currentScore >= 8.5;
 
                 const cardHtml = `
                     <div class="glass-panel border ${isSignal ? (asset.type === 'BUY' ? 'glow-green' : 'glow-red') : 'border-gray-800'} rounded-xl md:rounded-2xl p-3.5 md:p-5 transition">
@@ -466,7 +323,7 @@
                             <div>
                                 <div class="flex items-center gap-2">
                                     <h3 class="text-base md:text-lg font-bold text-white">${asset.symbol}</h3>
-                                    <span class="text-xs font-mono text-gray-300 bg-gray-800 px-1.5 py-0.5 rounded">${asset.price}</span>
+                                    <span class="text-xs font-mono text-gray-200 bg-gray-800 px-1.5 py-0.5 rounded">${asset.price}</span>
                                     <span class="text-xs font-mono ${asset.change.startsWith('-') ? 'text-red-400' : 'text-emerald-400'}">${asset.change}</span>
                                 </div>
                             </div>
@@ -484,7 +341,7 @@
                                 </div>
                                 <div class="grid grid-cols-3 gap-1.5 md:gap-2 text-center font-mono">
                                     <div class="bg-gray-900 p-1.5 md:p-2 rounded-lg border border-gray-800">
-                                        <span class="text-[8px] md:text-[9px] text-gray-500 block">ENTRY</span>
+                                        <span class="text-[8px] md:text-[9px] text-gray-500 block">LIVE ENTRY</span>
                                         <span class="text-xs md:text-sm font-bold text-blue-400">${asset.entry}</span>
                                     </div>
                                     <div class="bg-gray-900 p-1.5 md:p-2 rounded-lg border border-gray-800">
@@ -499,7 +356,7 @@
                             </div>
                         ` : `
                             <div class="bg-gray-950/40 border border-gray-800/50 rounded-xl p-2.5 mb-3">
-                                <p class="text-[11px] text-gray-500 font-mono">Awaiting higher timeframe confluence alignment.</p>
+                                <p class="text-[11px] text-gray-500 font-mono">Awaiting multi-agent confluence trigger threshold (8.5+).</p>
                             </div>
                         `}
 
@@ -523,25 +380,8 @@
             });
         }
 
-        function triggerSignalPopup(asset) {
-            document.getElementById('modal-type-badge').innerText = `${asset.type} SIGNAL`;
-            document.getElementById('modal-type-badge').className = `px-2.5 py-1 text-[10px] font-bold font-mono rounded uppercase ${asset.type === 'BUY' ? 'bg-emerald-900/80 text-emerald-300 border border-emerald-500' : 'bg-red-900/80 text-red-300 border border-red-500'}`;
-            document.getElementById('modal-asset-name').innerText = asset.symbol;
-            document.getElementById('modal-entry-price').innerText = asset.entry;
-            document.getElementById('modal-sl-price').innerText = asset.sl;
-            document.getElementById('modal-tp-price').innerText = asset.tp1;
-            document.getElementById('modal-score').innerText = `${calculateCompositeScore(asset)} / 10`;
-            document.getElementById('modal-rrr').innerText = asset.rrr;
-            
-            document.getElementById('signal-modal').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('signal-modal').classList.add('hidden');
-        }
-
-        // Initial Initialization
-        renderCards();
+        // Initialize Live Connection
+        fetchDeltaExchangeData();
         startAutoRefreshLoop();
     </script>
 </body>
