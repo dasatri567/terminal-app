@@ -2,160 +2,249 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confluence Terminal | Multi-Agent SMC Scanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Confluence Terminal Pro | SMC Multi-Agent Scanner</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0b0f17;
-            color: #c9d1d9;
+            background-color: #070a0f;
+            color: #d1d5db;
+            -webkit-tap-highlight-color: transparent;
         }
         .font-mono {
-            font-family: 'JetBrains+Mono', monospace;
+            font-family: 'JetBrains Mono', monospace;
         }
         .glow-green {
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+            border-color: rgba(16, 185, 129, 0.4);
         }
         .glow-red {
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.25);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+        .glass-panel {
+            background: linear-gradient(180deg, rgba(17, 24, 39, 0.85) 0%, rgba(11, 15, 23, 0.95) 100%);
+            backdrop-filter: blur(8px);
         }
         .agent-active {
             border-color: #3b82f6;
-            background-color: rgba(59, 130, 246, 0.08);
+            background: rgba(59, 130, 246, 0.12);
         }
-        /* Modal Backdrop */
         .modal-backdrop {
-            background-color: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(4px);
+            background-color: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(6px);
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f17;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 2px;
         }
     </style>
 </head>
-<body class="p-4 md:p-8 max-w-4xl mx-auto">
+<body class="min-h-screen flex flex-col antialiased pb-6">
 
-    <!-- TOP HEADER -->
-    <header class="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
-        <div>
-            <h1 class="text-xl font-bold text-white tracking-wide">Confluence Terminal</h1>
-            <p class="text-xs text-gray-400 font-mono">Delta Exchange · Multi-Agent SMC Scanner</p>
-        </div>
-        <div class="flex items-center space-x-3">
-            <span class="text-xs text-gray-500 font-mono" id="last-updated">Updated just now</span>
-            <button onclick="scanMarkets()" class="bg-gray-800 hover:bg-gray-700 text-xs px-3 py-1.5 rounded-md font-mono border border-gray-700 flex items-center gap-1 transition">
-                <span>🔄</span> Refresh
-            </button>
+    <!-- TOP NAV BAR -->
+    <header class="border-b border-gray-800/80 bg-gray-950/90 backdrop-blur sticky top-0 z-40 px-3 py-2.5 md:px-6 md:py-3">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            
+            <!-- Left: Sidebar Toggle & Branding -->
+            <div class="flex items-center gap-2.5">
+                <button onclick="toggleSidebar()" class="p-2 bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white rounded-lg border border-gray-800 transition flex items-center justify-center active:scale-95">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <h1 class="text-sm md:text-base font-bold text-white tracking-wide">CONFLUENCE <span class="text-xs px-1.5 py-0.5 rounded bg-blue-950 text-blue-400 font-mono border border-blue-800">PRO</span></h1>
+                    </div>
+                    <p class="text-[10px] md:text-[11px] text-gray-400 font-mono">Delta SMC Scanner</p>
+                </div>
+            </div>
+
+            <!-- Right: Auto-Refresh Timer & Controls -->
+            <div class="flex items-center gap-2">
+                <div class="flex flex-col items-end font-mono text-[10px] md:text-xs">
+                    <div class="flex items-center gap-1.5 text-gray-400">
+                        <span>AUTO</span>
+                        <span id="timer-text" class="text-blue-400 font-bold w-5 text-right">15s</span>
+                    </div>
+                    <div class="w-16 md:w-20 bg-gray-900 h-1 rounded-full overflow-hidden mt-0.5 border border-gray-800">
+                        <div id="timer-bar" class="bg-blue-500 h-full transition-all duration-1000 ease-linear w-full"></div>
+                    </div>
+                </div>
+
+                <button onclick="toggleAutoRefresh()" id="pause-btn" class="bg-gray-900 hover:bg-gray-800 text-gray-300 p-2 rounded-lg font-mono border border-gray-800 transition active:scale-95">
+                    <span id="pause-icon">⏸</span>
+                </button>
+
+                <button onclick="manualRefresh()" class="bg-blue-600 hover:bg-blue-500 text-white p-2 md:px-3 md:py-2 rounded-lg font-mono border border-blue-400/30 flex items-center gap-1 transition active:scale-95 shadow-lg shadow-blue-600/20">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span class="hidden md:inline text-xs">Refresh</span>
+                </button>
+            </div>
         </div>
     </header>
 
-    <!-- AGENT SELECTION PANEL -->
-    <section class="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6">
-        <div class="flex justify-between items-center mb-3">
-            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider font-mono">Active SMC Agents</span>
-            <span class="text-xs text-blue-400 font-mono" id="active-agent-count">3/3 Active</span>
+    <!-- 30-DAY HISTORY SIDEBAR DRAWER -->
+    <div id="sidebar-drawer" class="fixed inset-0 modal-backdrop z-50 hidden transition-opacity">
+        <div class="fixed inset-y-0 left-0 w-full sm:max-w-md bg-gray-950 border-r border-gray-800 shadow-2xl flex flex-col">
+            
+            <!-- Drawer Header -->
+            <div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
+                <div>
+                    <h2 class="text-sm md:text-base font-bold text-white flex items-center gap-2">
+                        <span>📜</span> 30-Day Signal History
+                    </h2>
+                    <p class="text-[11px] text-gray-400 font-mono">Recorded SMC Calls & Pass/Fail Rate</p>
+                </div>
+                <button onclick="toggleSidebar()" class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800">✕</button>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="grid grid-cols-3 gap-2 p-3 md:p-4 border-b border-gray-800 bg-gray-900/20 font-mono text-center">
+                <div class="bg-gray-900 p-2 rounded-lg border border-gray-800">
+                    <span class="text-[9px] text-gray-400 block">TOTAL SIGNALS</span>
+                    <span id="stat-total" class="text-xs md:text-sm font-bold text-white">42</span>
+                </div>
+                <div class="bg-gray-900 p-2 rounded-lg border border-gray-800">
+                    <span class="text-[9px] text-gray-400 block">PASS (TP)</span>
+                    <span id="stat-pass" class="text-xs md:text-sm font-bold text-emerald-400">34</span>
+                </div>
+                <div class="bg-gray-900 p-2 rounded-lg border border-gray-800">
+                    <span class="text-[9px] text-gray-400 block">WIN RATE</span>
+                    <span id="stat-winrate" class="text-xs md:text-sm font-bold text-blue-400">80.9%</span>
+                </div>
+            </div>
+
+            <!-- Filter Buttons -->
+            <div class="flex gap-2 p-3 md:p-4 pb-2 text-xs font-mono">
+                <button onclick="filterHistory('ALL')" id="filter-all" class="flex-1 py-1.5 rounded-md bg-blue-600 text-white font-semibold text-center">ALL</button>
+                <button onclick="filterHistory('PASS')" id="filter-pass" class="flex-1 py-1.5 rounded-md bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 text-center">PASS</button>
+                <button onclick="filterHistory('FAIL')" id="filter-fail" class="flex-1 py-1.5 rounded-md bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 text-center">FAIL</button>
+            </div>
+
+            <!-- History Signal List -->
+            <div id="history-list" class="flex-1 overflow-y-auto p-3 md:p-4 space-y-2.5 font-mono text-xs">
+                <!-- Rendered Dynamically -->
+            </div>
         </div>
-        <div class="grid grid-cols-3 gap-3">
-            <!-- Agent 1: Structure -->
-            <button onclick="toggleAgent('structure')" id="btn-structure" class="agent-active border border-blue-500/50 rounded-lg p-3 text-left transition">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="text-blue-400 text-sm">📈</span>
-                    <span class="text-xs font-bold text-white">Structure</span>
-                </div>
-                <p class="text-[10px] text-gray-400 font-mono">BoS / CHoCH / Premium-Discount</p>
-            </button>
+    </div>
 
-            <!-- Agent 2: OB / FVG -->
-            <button onclick="toggleAgent('ob_fvg')" id="btn-ob_fvg" class="agent-active border border-blue-500/50 rounded-lg p-3 text-left transition">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="text-blue-400 text-sm">🧱</span>
-                    <span class="text-xs font-bold text-white">OB / FVG</span>
-                </div>
-                <p class="text-[10px] text-gray-400 font-mono">Displacement & 50% OB</p>
-            </button>
+    <!-- MAIN BODY CONTENT -->
+    <main class="max-w-6xl mx-auto w-full p-3 md:p-6 flex-1 space-y-4 md:space-y-6">
 
-            <!-- Agent 3: Liquidity -->
-            <button onclick="toggleAgent('liquidity')" id="btn-liquidity" class="agent-active border border-blue-500/50 rounded-lg p-3 text-left transition">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="text-blue-400 text-sm">💧</span>
-                    <span class="text-xs font-bold text-white">Liquidity</span>
-                </div>
-                <p class="text-[10px] text-gray-400 font-mono">External Sweeps & Traps</p>
-            </button>
+        <!-- AGENT SELECTION CONTROL PANEL -->
+        <section class="glass-panel border border-gray-800 rounded-xl md:rounded-2xl p-3 md:p-4">
+            <div class="flex justify-between items-center mb-2.5">
+                <span class="text-[11px] md:text-xs font-bold text-gray-300 uppercase tracking-wider font-mono">Active SMC Agents</span>
+                <span class="text-[10px] md:text-xs text-blue-400 font-mono bg-blue-950/60 px-2 py-0.5 rounded border border-blue-800" id="active-agent-count">3/3 Active</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3">
+                <!-- Structure Agent -->
+                <button onclick="toggleAgent('structure')" id="btn-structure" class="agent-active border border-blue-500/50 rounded-lg md:rounded-xl p-2.5 md:p-3 text-left transition active:scale-95">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold text-white flex items-center gap-1">📈 Structure</span>
+                        <span class="text-[9px] px-1 py-0.2 rounded bg-blue-950 text-blue-300 font-mono border border-blue-800">Agent 1</span>
+                    </div>
+                    <p class="text-[10px] text-gray-400 font-mono leading-tight">BoS / CHoCH / Premium & Discount</p>
+                </button>
+
+                <!-- OB / FVG Agent -->
+                <button onclick="toggleAgent('ob_fvg')" id="btn-ob_fvg" class="agent-active border border-blue-500/50 rounded-lg md:rounded-xl p-2.5 md:p-3 text-left transition active:scale-95">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold text-white flex items-center gap-1">🧱 OB & FVG</span>
+                        <span class="text-[9px] px-1 py-0.2 rounded bg-blue-950 text-blue-300 font-mono border border-blue-800">Agent 2</span>
+                    </div>
+                    <p class="text-[10px] text-gray-400 font-mono leading-tight">Displacement & 50% OB Midpoint</p>
+                </button>
+
+                <!-- Liquidity Agent -->
+                <button onclick="toggleAgent('liquidity')" id="btn-liquidity" class="agent-active border border-blue-500/50 rounded-lg md:rounded-xl p-2.5 md:p-3 text-left transition active:scale-95">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold text-white flex items-center gap-1">💧 Liquidity</span>
+                        <span class="text-[9px] px-1 py-0.2 rounded bg-blue-950 text-blue-300 font-mono border border-blue-800">Agent 3</span>
+                    </div>
+                    <p class="text-[10px] text-gray-400 font-mono leading-tight">External Pools & Stop-Loss Traps</p>
+                </button>
+            </div>
+        </section>
+
+        <!-- LIVE CARDS CONTAINER -->
+        <div id="scanner-cards" class="grid grid-cols-1 gap-3 md:gap-4">
+            <!-- Rendered via JS -->
         </div>
-    </section>
-
-    <!-- CARDS CONTAINER -->
-    <main id="scanner-cards" class="space-y-4">
-        <!-- Rendered via JS -->
     </main>
 
     <!-- SIGNAL POPUP MODAL -->
-    <div id="signal-modal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full shadow-2xl relative">
+    <div id="signal-modal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-3 md:p-4 z-50">
+        <div class="bg-gray-900 border border-gray-700 rounded-2xl p-5 md:p-6 max-w-md w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✕</button>
             
-            <div class="flex items-center gap-3 mb-4">
-                <span id="modal-type-badge" class="px-3 py-1 text-xs font-bold font-mono rounded-md uppercase">BUY SIGNAL</span>
-                <span class="text-xs text-gray-400 font-mono">High Confluence Setup</span>
+            <div class="flex items-center gap-2 mb-3">
+                <span id="modal-type-badge" class="px-2.5 py-1 text-[10px] font-bold font-mono rounded uppercase">BUY SIGNAL</span>
+                <span class="text-[11px] text-gray-400 font-mono">High Confluence Setup</span>
             </div>
 
-            <h2 id="modal-asset-name" class="text-2xl font-bold text-white mb-1">BTC / USD</h2>
-            <p id="modal-timeframe-info" class="text-xs text-gray-400 font-mono mb-4">5M Entry — Flagged by OB 50% & Liquidity Sweep</p>
+            <h2 id="modal-asset-name" class="text-xl md:text-2xl font-bold text-white mb-0.5">BTC / USD</h2>
+            <p id="modal-timeframe-info" class="text-[11px] text-gray-400 font-mono mb-4">5M Entry — Multi-Agent Confluence</p>
 
-            <!-- Price Breakdown Grid -->
-            <div class="grid grid-cols-3 gap-2 p-3 bg-gray-950 rounded-lg border border-gray-800 text-center font-mono mb-4">
+            <div class="grid grid-cols-3 gap-2 p-2.5 bg-gray-950 rounded-xl border border-gray-800 text-center font-mono mb-4">
                 <div>
-                    <span class="text-[10px] text-gray-500 block">ENTRY</span>
-                    <span id="modal-entry-price" class="text-sm font-bold text-blue-400">77,554.00</span>
+                    <span class="text-[9px] text-gray-500 block">ENTRY</span>
+                    <span id="modal-entry-price" class="text-xs md:text-sm font-bold text-blue-400">77,554.00</span>
                 </div>
                 <div>
-                    <span class="text-[10px] text-gray-500 block">STOP LOSS</span>
-                    <span id="modal-sl-price" class="text-sm font-bold text-red-400">77,312.16</span>
+                    <span class="text-[9px] text-gray-500 block">STOP LOSS</span>
+                    <span id="modal-sl-price" class="text-xs md:text-sm font-bold text-red-400">77,312.16</span>
                 </div>
                 <div>
-                    <span class="text-[10px] text-gray-500 block">TARGET (TP1)</span>
-                    <span id="modal-tp-price" class="text-sm font-bold text-emerald-400">78,279.52</span>
+                    <span class="text-[9px] text-gray-500 block">TARGET (TP1)</span>
+                    <span id="modal-tp-price" class="text-xs md:text-sm font-bold text-emerald-400">78,279.52</span>
                 </div>
             </div>
 
-            <div class="space-y-2 mb-6 text-xs text-gray-300">
+            <div class="space-y-2 mb-5 text-xs text-gray-300 font-mono">
                 <div class="flex justify-between border-b border-gray-800 pb-1">
-                    <span class="text-gray-500">Confluence Score:</span>
+                    <span class="text-gray-400">Confluence Score:</span>
                     <span id="modal-score" class="font-bold text-emerald-400">9.2 / 10</span>
                 </div>
                 <div class="flex justify-between border-b border-gray-800 pb-1">
-                    <span class="text-gray-500">Risk-to-Reward:</span>
+                    <span class="text-gray-400">Risk-to-Reward Ratio:</span>
                     <span id="modal-rrr" class="font-bold text-white">1:3.00</span>
                 </div>
-                <p id="modal-description" class="text-gray-400 pt-1 text-[11px] leading-relaxed">
+                <p id="modal-description" class="text-gray-400 pt-1 text-[10px] md:text-[11px] leading-relaxed">
                     Sell-side liquidity swept below recent low, reclaimed with displacement. Price retesting 50% OB mitigation level in Discount.
                 </p>
             </div>
 
-            <button onclick="closeModal()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition text-sm">
-                Acknowledge & Monitor
+            <button onclick="closeModal()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition text-xs md:text-sm font-mono active:scale-95">
+                Acknowledge Signal
             </button>
         </div>
     </div>
 
     <!-- SCRIPT SECTION -->
     <script>
-        // Agent Toggle States
-        const activeAgents = {
-            structure: true,
-            ob_fvg: true,
-            liquidity: true
-        };
+        const activeAgents = { structure: true, ob_fvg: true, liquidity: true };
 
-        // Simulated Market Scanning Data adhering to exact SMC video logic
         const marketData = [
             {
                 symbol: "BTC / USD",
+                basePrice: 77115.00,
                 price: "77,115.00",
                 change: "-0.17%",
                 type: "BUY",
                 score: 9.2,
-                status: "SIGNAL ACTIVE",
                 tf: "5M",
                 entry: "77,554.00",
                 sl: "77,312.16",
@@ -163,18 +252,18 @@
                 tp2: "78,763.20",
                 rrr: "1:3.00",
                 agents: {
-                    structure: { score: 9.0, note: "Bullish CHoCH confirmed; Retraced into Discount zone." },
-                    ob_fvg: { score: 9.5, note: "Strong displacement candle; Price holding OB 50% midpoint." },
-                    liquidity: { score: 9.0, note: "Sell-side liquidity swept below swing low; Reclaim validated." }
+                    structure: { score: 9.0 },
+                    ob_fvg: { score: 9.5 },
+                    liquidity: { score: 9.0 }
                 }
             },
             {
                 symbol: "SOL / USD",
+                basePrice: 100.32,
                 price: "100.32",
                 change: "-0.27%",
                 type: "SELL",
                 score: 8.8,
-                status: "SIGNAL ACTIVE",
                 tf: "15M",
                 entry: "100.82",
                 sl: "101.44",
@@ -182,18 +271,18 @@
                 tp2: "97.699",
                 rrr: "1:3.00",
                 agents: {
-                    structure: { score: 8.6, note: "Bearish BoS continuation; Rejected from Premium zone." },
-                    ob_fvg: { score: 9.0, note: "Bearish OB identified; 50% level retested with rejection wick." },
-                    liquidity: { score: 8.8, note: "Buy-side liquidity swept above equal highs; Short stops triggered." }
+                    structure: { score: 8.6 },
+                    ob_fvg: { score: 9.0 },
+                    liquidity: { score: 8.8 }
                 }
             },
             {
                 symbol: "PAXG / USD",
+                basePrice: 4346.60,
                 price: "4,346.60",
                 change: "-0.09%",
                 type: "NEUTRAL",
                 score: 2.1,
-                status: "WATCHLIST",
                 tf: "15M",
                 entry: "---",
                 sl: "---",
@@ -201,12 +290,138 @@
                 tp2: "---",
                 rrr: "N/A",
                 agents: {
-                    structure: { score: 3.0, note: "Consolidating without clear HTF bias." },
-                    ob_fvg: { score: 2.0, note: "Unmitigated FVG present, but lacking strong displacement." },
-                    liquidity: { score: 1.5, note: "No major external liquidity sweep observed." }
+                    structure: { score: 3.0 },
+                    ob_fvg: { score: 2.0 },
+                    liquidity: { score: 1.5 }
                 }
             }
         ];
+
+        const signalHistoryData = [
+            { id: 101, symbol: "BTC/USD", type: "BUY", date: "2026-03-29", tf: "5M", entry: "76,200", result: "PASS", rrr: "1:3.1" },
+            { id: 102, symbol: "SOL/USD", type: "SELL", date: "2026-03-28", tf: "15M", entry: "104.50", result: "PASS", rrr: "1:2.8" },
+            { id: 103, symbol: "ETH/USD", type: "BUY", date: "2026-03-27", tf: "15M", entry: "3,410", result: "FAIL", rrr: "1:2.5" },
+            { id: 104, symbol: "BTC/USD", type: "SELL", date: "2026-03-25", tf: "1M", entry: "75,800", result: "PASS", rrr: "1:3.5" },
+            { id: 105, symbol: "PAXG/USD", type: "BUY", date: "2026-03-24", tf: "15M", entry: "4,280", result: "PASS", rrr: "1:2.2" },
+            { id: 106, symbol: "SOL/USD", type: "BUY", date: "2026-03-22", tf: "5M", entry: "98.10", result: "FAIL", rrr: "1:2.5" },
+            { id: 107, symbol: "BTC/USD", type: "BUY", date: "2026-03-20", tf: "5M", entry: "73,400", result: "PASS", rrr: "1:3.0" }
+        ];
+
+        let currentHistoryFilter = 'ALL';
+        let countdown = 15;
+        let isAutoRefreshActive = true;
+        let refreshTimerInterval = null;
+
+        function startAutoRefreshLoop() {
+            if (refreshTimerInterval) clearInterval(refreshTimerInterval);
+            refreshTimerInterval = setInterval(() => {
+                if (!isAutoRefreshActive) return;
+                
+                countdown--;
+                if (countdown < 0) {
+                    countdown = 15;
+                    updateMarketTick();
+                }
+                updateTimerUI();
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            document.getElementById('timer-text').innerText = `${countdown}s`;
+            const percentage = (countdown / 15) * 100;
+            document.getElementById('timer-bar').style.width = `${percentage}%`;
+        }
+
+        function toggleAutoRefresh() {
+            isAutoRefreshActive = !isAutoRefreshActive;
+            const btnIcon = document.getElementById('pause-icon');
+            if (isAutoRefreshActive) {
+                btnIcon.innerText = "⏸";
+                document.getElementById('timer-bar').classList.remove('bg-yellow-500');
+                document.getElementById('timer-bar').classList.add('bg-blue-500');
+            } else {
+                btnIcon.innerText = "▶";
+                document.getElementById('timer-bar').classList.remove('bg-blue-500');
+                document.getElementById('timer-bar').classList.add('bg-yellow-500');
+            }
+        }
+
+        function manualRefresh() {
+            countdown = 15;
+            updateTimerUI();
+            updateMarketTick();
+        }
+
+        function updateMarketTick() {
+            // Micro fluctuate live price data for real-time responsiveness
+            marketData.forEach(asset => {
+                const delta = (Math.random() - 0.49) * 0.002;
+                asset.basePrice = asset.basePrice * (1 + delta);
+                asset.price = asset.basePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            });
+            renderCards();
+        }
+
+        function toggleSidebar() {
+            const drawer = document.getElementById('sidebar-drawer');
+            drawer.classList.toggle('hidden');
+            if (!drawer.classList.contains('hidden')) renderHistory();
+        }
+
+        function filterHistory(filter) {
+            currentHistoryFilter = filter;
+            ['all', 'pass', 'fail'].forEach(f => {
+                const btn = document.getElementById(`filter-${f}`);
+                if (f.toUpperCase() === filter) {
+                    btn.className = "flex-1 py-1.5 rounded-md bg-blue-600 text-white font-semibold text-center";
+                } else {
+                    btn.className = "flex-1 py-1.5 rounded-md bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 text-center";
+                }
+            });
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history-list');
+            container.innerHTML = '';
+
+            const filtered = signalHistoryData.filter(item => {
+                if (currentHistoryFilter === 'ALL') return true;
+                return item.result === currentHistoryFilter;
+            });
+
+            const total = signalHistoryData.length;
+            const passes = signalHistoryData.filter(i => i.result === 'PASS').length;
+            const winrate = ((passes / total) * 100).toFixed(1);
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-pass').innerText = passes;
+            document.getElementById('stat-winrate').innerText = `${winrate}%`;
+
+            filtered.forEach(item => {
+                const isPass = item.result === 'PASS';
+                const html = `
+                    <div class="p-2.5 bg-gray-900/90 border border-gray-800/80 rounded-xl flex justify-between items-center">
+                        <div>
+                            <div class="flex items-center gap-1.5 mb-0.5">
+                                <span class="font-bold text-white text-xs">${item.symbol}</span>
+                                <span class="px-1 py-0.2 text-[8px] rounded uppercase ${item.type === 'BUY' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'}">${item.type}</span>
+                                <span class="text-gray-500 text-[9px]">${item.tf}</span>
+                            </div>
+                            <div class="text-[9px] text-gray-400">
+                                <span>Entry: ${item.entry}</span> · <span class="text-gray-500">${item.date}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${isPass ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-700' : 'bg-red-900/60 text-red-300 border border-red-700'}">
+                                ${isPass ? '✓ PASS' : '✕ FAIL'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
 
         function toggleAgent(agentKey) {
             activeAgents[agentKey] = !activeAgents[agentKey];
@@ -245,65 +460,61 @@
                 const isSignal = currentScore >= 8.5 && asset.type !== "NEUTRAL";
 
                 const cardHtml = `
-                    <div class="bg-gray-900 border ${isSignal ? (asset.type === 'BUY' ? 'border-emerald-500/40 glow-green' : 'border-red-500/40 glow-red') : 'border-gray-800'} rounded-xl p-5 transition">
-                        <!-- Top Card Header -->
+                    <div class="glass-panel border ${isSignal ? (asset.type === 'BUY' ? 'glow-green' : 'glow-red') : 'border-gray-800'} rounded-xl md:rounded-2xl p-3.5 md:p-5 transition">
+                        
                         <div class="flex justify-between items-start mb-3">
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <h3 class="text-lg font-bold text-white">${asset.symbol}</h3>
-                                    <span class="text-xs font-mono text-gray-400">${asset.price}</span>
+                                    <h3 class="text-base md:text-lg font-bold text-white">${asset.symbol}</h3>
+                                    <span class="text-xs font-mono text-gray-300 bg-gray-800 px-1.5 py-0.5 rounded">${asset.price}</span>
                                     <span class="text-xs font-mono ${asset.change.startsWith('-') ? 'text-red-400' : 'text-emerald-400'}">${asset.change}</span>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <span class="text-2xl font-bold font-mono ${isSignal ? (asset.type === 'BUY' ? 'text-emerald-400' : 'text-red-400') : 'text-gray-400'}">${currentScore}</span>
-                                <span class="text-xs text-gray-500 font-mono">/10</span>
+                                <span class="text-xl md:text-2xl font-bold font-mono ${isSignal ? (asset.type === 'BUY' ? 'text-emerald-400' : 'text-red-400') : 'text-gray-400'}">${currentScore}</span>
+                                <span class="text-[10px] text-gray-500 font-mono block sm:inline">/10</span>
                             </div>
                         </div>
 
                         ${isSignal ? `
-                            <!-- Active Entry Signal Sub-box -->
-                            <div class="bg-gray-950 border border-gray-800 rounded-lg p-3 mb-3">
-                                <div class="flex justify-between text-xs text-gray-400 font-mono mb-2">
-                                    <span>Take entry on <strong class="text-white">${asset.tf}</strong> chart</span>
-                                    <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold ${asset.type === 'BUY' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'}">${asset.type} SIGNAL</span>
+                            <div class="bg-gray-950/80 border border-gray-800 rounded-xl p-2.5 md:p-3.5 mb-3">
+                                <div class="flex justify-between items-center text-[11px] text-gray-400 font-mono mb-2">
+                                    <span>Timeframe: <strong class="text-white">${asset.tf}</strong></span>
+                                    <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase ${asset.type === 'BUY' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'}">${asset.type} EXECUTION</span>
                                 </div>
-                                <div class="grid grid-cols-3 gap-2 text-center font-mono">
-                                    <div class="bg-gray-900/80 p-2 rounded border border-gray-800">
-                                        <span class="text-[9px] text-gray-500 block">ENTRY</span>
-                                        <span class="text-sm font-bold text-blue-400">${asset.entry}</span>
+                                <div class="grid grid-cols-3 gap-1.5 md:gap-2 text-center font-mono">
+                                    <div class="bg-gray-900 p-1.5 md:p-2 rounded-lg border border-gray-800">
+                                        <span class="text-[8px] md:text-[9px] text-gray-500 block">ENTRY</span>
+                                        <span class="text-xs md:text-sm font-bold text-blue-400">${asset.entry}</span>
                                     </div>
-                                    <div class="bg-gray-900/80 p-2 rounded border border-gray-800">
-                                        <span class="text-[9px] text-gray-500 block">SL</span>
-                                        <span class="text-sm font-bold text-red-400">${asset.sl}</span>
+                                    <div class="bg-gray-900 p-1.5 md:p-2 rounded-lg border border-gray-800">
+                                        <span class="text-[8px] md:text-[9px] text-gray-500 block">SL</span>
+                                        <span class="text-xs md:text-sm font-bold text-red-400">${asset.sl}</span>
                                     </div>
-                                    <div class="bg-gray-900/80 p-2 rounded border border-gray-800">
-                                        <span class="text-[9px] text-gray-500 block">TP1</span>
-                                        <span class="text-sm font-bold text-emerald-400">${asset.tp1}</span>
+                                    <div class="bg-gray-900 p-1.5 md:p-2 rounded-lg border border-gray-800">
+                                        <span class="text-[8px] md:text-[9px] text-gray-500 block">TP1</span>
+                                        <span class="text-xs md:text-sm font-bold text-emerald-400">${asset.tp1}</span>
                                     </div>
-                                </div>
-                                <div class="flex justify-between items-center text-[11px] font-mono text-gray-400 mt-2">
-                                    <span>RRR <strong class="text-white">${asset.rrr}</strong></span>
-                                    <span>Target 2: <span class="text-gray-300">${asset.tp2}</span></span>
                                 </div>
                             </div>
                         ` : `
-                            <p class="text-xs text-gray-500 font-mono mb-3">Structure building. Awaiting aligned external liquidity sweep & OB 50% retest.</p>
+                            <div class="bg-gray-950/40 border border-gray-800/50 rounded-xl p-2.5 mb-3">
+                                <p class="text-[11px] text-gray-500 font-mono">Awaiting higher timeframe confluence alignment.</p>
+                            </div>
                         `}
 
-                        <!-- Individual Agent Scores -->
-                        <div class="grid grid-cols-3 gap-2 text-center font-mono text-xs pt-2 border-t border-gray-800/60">
-                            <div class="${activeAgents.structure ? 'opacity-100' : 'opacity-30'}">
-                                <span class="text-gray-500 text-[10px] block">Structure</span>
-                                <span class="font-bold text-gray-300">${asset.agents.structure.score}</span>
+                        <div class="grid grid-cols-3 gap-1.5 text-center font-mono text-xs pt-2 border-t border-gray-800/60">
+                            <div class="${activeAgents.structure ? 'opacity-100' : 'opacity-30'} bg-gray-950/40 p-1 rounded border border-gray-800/40">
+                                <span class="text-gray-500 text-[9px] block">Structure</span>
+                                <span class="font-bold text-gray-200 text-xs">${asset.agents.structure.score}</span>
                             </div>
-                            <div class="${activeAgents.ob_fvg ? 'opacity-100' : 'opacity-30'}">
-                                <span class="text-gray-500 text-[10px] block">OB / 50%</span>
-                                <span class="font-bold text-gray-300">${asset.agents.ob_fvg.score}</span>
+                            <div class="${activeAgents.ob_fvg ? 'opacity-100' : 'opacity-30'} bg-gray-950/40 p-1 rounded border border-gray-800/40">
+                                <span class="text-gray-500 text-[9px] block">OB / 50%</span>
+                                <span class="font-bold text-gray-200 text-xs">${asset.agents.ob_fvg.score}</span>
                             </div>
-                            <div class="${activeAgents.liquidity ? 'opacity-100' : 'opacity-30'}">
-                                <span class="text-gray-500 text-[10px] block">Liquidity</span>
-                                <span class="font-bold text-gray-300">${asset.agents.liquidity.score}</span>
+                            <div class="${activeAgents.liquidity ? 'opacity-100' : 'opacity-30'} bg-gray-950/40 p-1 rounded border border-gray-800/40">
+                                <span class="text-gray-500 text-[9px] block">Liquidity</span>
+                                <span class="font-bold text-gray-200 text-xs">${asset.agents.liquidity.score}</span>
                             </div>
                         </div>
                     </div>
@@ -314,9 +525,8 @@
 
         function triggerSignalPopup(asset) {
             document.getElementById('modal-type-badge').innerText = `${asset.type} SIGNAL`;
-            document.getElementById('modal-type-badge').className = `px-3 py-1 text-xs font-bold font-mono rounded-md uppercase ${asset.type === 'BUY' ? 'bg-emerald-900/80 text-emerald-300 border border-emerald-500' : 'bg-red-900/80 text-red-300 border border-red-500'}`;
+            document.getElementById('modal-type-badge').className = `px-2.5 py-1 text-[10px] font-bold font-mono rounded uppercase ${asset.type === 'BUY' ? 'bg-emerald-900/80 text-emerald-300 border border-emerald-500' : 'bg-red-900/80 text-red-300 border border-red-500'}`;
             document.getElementById('modal-asset-name').innerText = asset.symbol;
-            document.getElementById('modal-timeframe-info').innerText = `${asset.tf} Entry — Confluence from Active Agents`;
             document.getElementById('modal-entry-price').innerText = asset.entry;
             document.getElementById('modal-sl-price').innerText = asset.sl;
             document.getElementById('modal-tp-price').innerText = asset.tp1;
@@ -330,20 +540,9 @@
             document.getElementById('signal-modal').classList.add('hidden');
         }
 
-        function scanMarkets() {
-            const now = new Date();
-            document.getElementById('last-updated').innerText = `Updated ${now.toLocaleTimeString()}`;
-            renderCards();
-            
-            // Auto-trigger pop-up for highest scoring signal
-            const topSignal = marketData.find(a => calculateCompositeScore(a) >= 8.5);
-            if (topSignal) {
-                triggerSignalPopup(topSignal);
-            }
-        }
-
-        // Initial Load
+        // Initial Initialization
         renderCards();
+        startAutoRefreshLoop();
     </script>
 </body>
 </html>
